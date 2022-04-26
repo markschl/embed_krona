@@ -1,6 +1,6 @@
 # Krona charts from phyloseq in R(-Markdown)
 
-This repo provides an R function, which allows creating [Krona charts](https://github.com/marbl/Krona)
+This repo provides an R function, which allows creating [Krona charts](https://github.com/marbl/Krona/wiki)
 from a [phyloseq object](https://github.com/joey711/phyloseq).
 
 ## Features
