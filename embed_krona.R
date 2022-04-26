@@ -36,9 +36,7 @@
 #'   formats accepted by whebshot can be used (png, jpeg, pdf). PDF will embed
 #'   vector graphics.
 #' @param snapshot_dim: Snapshot dimensions (in inches)
-#' @param snapshot_res: Snapshot resolution (pixels per inch) used when including
-#'   the snapshot with knitr::include_graphics(). Only determines the output size,
-#'   if output size is controlled by the chunk, this setting will not have any effect.
+#' @param snapshot_res: Snapshot resolution (pixels per inch)
 #' @param snapshot_fontsize: Default font size for snapshots. By default, this is
 #'   larger than normal, in order to allow snapshots at sufficient resolution.
 #' @param snapshot_delay: Delay (in seconds) before the snapshot is taken. This is
