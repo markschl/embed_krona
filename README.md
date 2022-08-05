@@ -16,11 +16,7 @@ from a [phyloseq object](https://github.com/joey711/phyloseq).
 
 ## How to use
 
-An example R-Markdown document based on the GlobalPatterns dataset in phyloseq
-is found [in this repository](phyloseq_example.Rmd), a compiled PDF snapshot is
-[found here](phyloseq_example.pdf).
-
-For more documentation refer to the [R script](embed_krona.R).
+For a documentation currently refer to the [R script](embed_krona.R) or to the example script `phyloseq_example.Rmd`](phyloseq_example.Rmd).
 
 It is possible to supply an *install\_dir* argument to *plot\_krona*, which 
 expects the path to the *embed\_krona* directory, and in which the KronaTools 
@@ -30,3 +26,8 @@ This approach is required if using custom color schemes, the `krona_import.pl` s
 requires access to the KronaTools directory.
 
 Creating snapshots requires an up-to-date Krona version (tested with Krona version 2.8.1).
+
+## Example
+
+The rendered PDF output of the [example R-Markdown document](phyloseq_example.Rmd) displaying the taxonomy of the `GlobalPatterns` dataset (from `phyloseq` package) can be [found here](phyloseq_example.pdf).
+
