@@ -16,7 +16,7 @@ from a [phyloseq object](https://github.com/joey711/phyloseq).
 
 ## How to use
 
-For a documentation currently refer to the [R script](embed_krona.R) or to the example script `phyloseq_example.Rmd`](phyloseq_example.Rmd).
+For a documentation currently refer to the [R script](embed_krona.R) or to the example script [`phyloseq_example.Rmd`](phyloseq_example.Rmd).
 
 It is possible to supply an *install\_dir* argument to *plot\_krona*, which 
 expects the path to the *embed\_krona* directory, and in which the KronaTools 
