@@ -1,7 +1,6 @@
 KronaTools/
-_krona_files/
 *~
 .R*
 /cache/
-*.html
 
+.Rproj.user
