@@ -1,9 +1,9 @@
 ---
 title: Example analyzes
 output:
-  bookdown::html_document2: { fig_caption: yes, number_sections: no }
-  html_document: default
   bookdown::pdf_document2: { fig_caption: yes, number_sections: no }
+  html_document: default
+  bookdown::html_document2: { fig_caption: yes, number_sections: no }
   pdf_document: default
   bookdown::github_document2: { fig_caption: yes, number_sections: no }
   github_document: default
@@ -29,7 +29,9 @@ data(GlobalPatterns)
 
 A krona chart can be directly produced from the phyloseq object with the following command (Figure \@ref(fig:globalpatt)):
 
-```{r eval=F}
+(ref:globalpatt) Taxonomic overview of the GlobalPatterns dataset
+
+```{r globalpatt, fig.cap='(ref:globalpatt)'}
 plot_krona(GlobalPatterns)
 ```
 
@@ -41,11 +43,9 @@ For the above to work, Krona [must be installed](https://github.com/marbl/Krona/
 plot_krona(GlobalPatterns, kronatools_dir='KronaTools')
 ```
 
-When rendering a chunk to different output formats (PDF, HTML, etc.), the Krona charts in HTML format will not be deleted, but placed in a directory named after the R-Markdown file (in this case `phyloseq_example_krona_files`). Alternatively, a "stable" output path can be specified:
+If the HTML Krona chart should be kept, the output path can be specified:
 
-(ref:globalpatt) Taxonomic overview of the GlobalPatterns dataset
-
-```{r globalpatt, fig.cap='(ref:globalpatt)'}
+```{r eval=F}
 plot_krona(GlobalPatterns, output='krona/global_patterns.html')
 ```
 
@@ -59,12 +59,18 @@ plot_krona(GlobalPatterns, output='krona/global_patterns.html', display=F)
 
 In R-Markdown documents displayed in Rstudio or in HTML output, an interactive chart is embedded. If `plot_krona` is issued in the R console, a browser window with an interactive chart opens. In static documents, a PNG snapshot is generated. The dimensions are controlled with *snapshot_dim* (dimensions in inches). Otherwise important settings are *snapshot_format* ('png' or 'pdf' for vector graphics), *snapshot_fontsize* (7 by default) or *snapshot_chart_size* controlling the size of the margins (default 0.7).
 
-The following command embeds a PDF chart (Figure \@ref(fig:gppdf)), which means that the chart is included as vector graphics in PDF documents (looks sharper, usually produces smaller files, but lines may look thicker). PDF cannot be embedded in webpages, thus nothing is shown in HTML output.
+The following command embeds a PDF chart (Figure \@ref(fig:gppdf)), which means that the chart is included as vector graphics in PDF documents. This looks sharper, usually produces smaller files, but on the downside makes lines look thicker and complex charts may slow down your PDF reader. PDFs are usually not displayed in HTML output.
 
 (ref:gppdf) Static chart of the GlobalPatterns dataset embedded as vector graphics in PDF format (or just white area in HTML documents).
 
 ```{r gppdf, fig.cap='(ref:gppdf)'}
 plot_krona(GlobalPatterns, snapshot_format='pdf', snapshot = T)
+```
+
+If the PDF chart should not be deleted, the output path can be specified (the format is recognized from the extension, and `snapshot = T` is automatically assumed):
+
+```{r eval=F}
+plot_krona(GlobalPatterns, output='krona/global_patterns.pdf')
 ```
 
 ## Multiple datasets

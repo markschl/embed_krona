@@ -31,7 +31,7 @@
 #' @param group_sep: Separator to use for joining `group_vars`
 #' @param shorten_group: Function used to shorten overly long strings resulted
 #'   from joining different grouping variables (`group_vars`)
-#' @param output: Optional HTML output file. If not set, a temporary file will
+#' @param output: Optional output file. If not set, a temporary file will
 #'   be created and embedded without retaining the HTML file.
 #' @param display: (boolean) Should the output be displayed? Setting this to `FALSE`
 #'   makes only sense if combined with `output` to allow generating a HTML
@@ -72,6 +72,13 @@
 #' @param kronatools_dir: (optional) Path to the 'KronaTools' source directory,
 #'   which was extracted from the Krona source code archive 
 #'   (https://github.com/marbl/Krona/releases/latest).
+#' @param resources_url: (optional) URL where Javascript and image resources should
+#'   be obtained from. This means an internet connection is needed when displaying
+#'   the charts, but also will reduce the interactive HTML chart files (especially
+#'   useful if several charts are embedded).
+#'   Example: resources_url = 'http://krona.sourceforge.net'
+#'   Specifically, the given address should serve the contents of the 'src'
+#'   and 'img' directories from KronaTools.
 #' @param snapshot: (optional, logical) Produce a snapshot image instead of
 #'   embedding an interactive chart. Will automatically be enabled if not in RStudio.
 #'   This will take `snapshot_delay` seconds.
@@ -90,7 +97,6 @@
 #'   Works the same way as the buttons increasing / decreasing the chart size.
 #' @param iframe_width: (optional, if knitting to HTML) Width of the Iframe (CSS units)
 #' @param iframe_height: (optional, if knitting to HTML) Height of the Iframe (CSS units)
-#' @param verbose: Output some more information
 #' @param krona_opts: More styling of the snapshot. A list of key-value 
 #'   parameters, which are passed to the krona chart as URL parameters. 
 #'   Currently available: 
@@ -101,21 +107,28 @@
 #'     depth (number), 
 #'     font (number),
 #'     key (true/false)
+#' @param minify: Compress the included Javascript code using 
+#'   UglifyJS (https://lisperator.net/uglifyjs). This makes files somewhat smaller.
+#'   This is ignored if 'resources_url' was specified (which has an even larger
+#'   effect on file size).
+#' @param verbose: Output some more information
+#' @param debug: Print debug information
 #'
 #' @details
 #'   Embedding in other document types (PDF, DOCX, etc.) requires taking a snapshot,
-#'   which is currently achieved by some Javascript hacks. They are tested with
-#'   version 2.8.1. and will not work with all older versions.
-#'   Install 'webshot' to allow embedding snapshots.
+#'   which is currently achieved by modifying the Javascript code of the charts.
+#'   Ths has been tested with KronaTools version 2.8.1 and will not work with 
+#'   all of the older versions.
 #'   
-#'   Embedding requires the HTML files and snapshots to be stored somewhere.
-#'   If `output` is specified, this file is created and then embedded. Snapshots
-#'   will have the same name with the extension specified by `snapshot_format`.
-#'   If `output` is not specified, a directory called *_krona_files* will be
-#'   created in the current directory, where the HTML files will be deposited,
-#'   named with a timestamp. If knitting an R-Markdown document with krona
-#'   charts embedded, the knitr working directory is used (knitr::current_input(dir=T)).
+#'   Embedding interactive charts requires 'htmltools' (should be present if
+#'   rmarkdown is installed), while taking snapshots requires the 'webshot'
+#'   package.
 #'   
+#'   Temporary output files will be stored in the Knitr plot directory 
+#'   (named after the R-Markdown file with a '_files' suffix). This directory
+#'   is usually removed after the rendering of the final document is finished.
+#'   If using 'plot_krona' from the R console, files will be stored in a directory
+#'   named 'krona_files', unless some output file is specified.
 plot_krona <- function(community, ...) {
   UseMethod('plot_krona')
 }
@@ -223,6 +236,7 @@ plot_krona.matrix = function(taxonomy,
                              summary_fn = sum,
                              color_summary_fn = weighted.mean,
                              kronatools_dir = NULL,
+                             resources_url = NULL,
                              snapshot = NULL,
                              snapshot_format = 'png',
                              snapshot_res = 220,
@@ -232,12 +246,11 @@ plot_krona.matrix = function(taxonomy,
                              snapshot_chart_size = 0.7,
                              iframe_width = '100%',
                              iframe_height = '470px',
+                             krona_opts = c(),
+                             minify = T,
                              verbose = F,
-                             krona_opts = c())
+                             debug = F)
 {
-  if (!display && is.null(output)) {
-    stop('plot_krona: display = FALSE, but no ouptput file defined.')
-  }
   stopifnot(is.logical(display) && length(display) == 1)
   stopifnot(is.character(root_label) && length(root_label) == 1)
   stopifnot(is.character(total_label) && length(total_label) == 1)
@@ -249,10 +262,12 @@ plot_krona.matrix = function(taxonomy,
   stopifnot(is.numeric(snapshot_delay) && length(snapshot_delay) == 1)
   stopifnot(is.numeric(snapshot_fontsize) && length(snapshot_fontsize) == 1)
   stopifnot(is.numeric(snapshot_chart_size) && length(snapshot_chart_size) == 1)
+  stopifnot(is.null(resources_url) || is.character(resources_url) && length(resources_url) == 1)
   stopifnot(is.character(iframe_width) && length(iframe_width) == 1)
   stopifnot(is.character(iframe_height) && length(iframe_height) == 1)
   stopifnot(is.logical(display) && length(display) == 1)
   stopifnot(is.logical(verbose) && length(verbose) == 1)
+  stopifnot(is.logical(minify) && length(minify) == 1)
   stopifnot(length(krona_opts) == 0 || is.character(krona_opts))
   
   if (is.null(kronatools_dir)) {
@@ -272,59 +287,79 @@ plot_krona.matrix = function(taxonomy,
       stop('plot_krona: kronatools_dir supplied, but KronaTools not found in the directory')
     }
   }
-  
-  # determine output file location
-  
-  get_file = function(dir) {
-    i = 1
-    while (T) {
-      f = file.path(dir, paste0('krona_', i, '.html'))
-      if (!file.exists(f)) {
-        return(f)
-      }
-      i = i + 1
-    }
-  }
-  
+
   # where is rendering happending, and for which format?
   try_run = function(...) suppressWarnings(try(..., silent=T))
   # FIXME: not sure if this is the best way to detect these settings
   outformat = try_run(knitr::opts_knit$get('rmarkdown.pandoc.to'))
   in_rstudio = is.null(outformat)
-  html_out = try_run(isTRUE(knitr::is_html_output())) | 
+  html_out = isTRUE(try_run(knitr::is_html_output())) | 
     !is.null(outformat) && grepl('gfm', outformat)  # gfm = github_document
-  in_console = !try_run(isTRUE(rstudioapi::getActiveDocumentContext()$id != "#console"))
-  
-  # determine snapshot format (not currently done, always the same default)
-  # snapshot_format = if (is.null(snapshot_format)) {
-  #   match.arg(snapshot_format, c('png', 'pdf', 'jpeg'))
-  # } else if (outformat %in% c('latex', 'docx', 'odt')) {
-  #   'pdf'
-  # } else {
-  #   'png'
-  # }
+  in_console = !isTRUE(try_run(rstudioapi::getActiveDocumentContext()$id != "#console")) &
+    is.null(outformat)
+
+  if (!is.null(output)) {
+    ext = tail(strsplit(output, '.', fixed=T)[[1]], 1)
+    if (ext %in% c('png', 'pdf', 'jpeg')) {
+      if (!is.null(snapshot) && snapshot == F) {
+        stop(paste('plot_krona: The extension of the output file is png/pdf/jepg,',
+                   'but no snapshot will be taken. Change the ending to .html or',
+                   'set snapshot=TRUE'))
+      } else if (verbose && is.null(snapshot) && (html_out || in_rstudio)) {
+        message(sprintf('Output file has "%s" extension, therefore taking a snapshot', ext))
+      }
+      snapshot = T
+      snapshot_format = ext
+      outfile = gsub('\\.[^\\.]+$', '.html', output, perl=T)
+      output = NULL  # ensure HTML file is deleted
+    } else {
+      outfile = output
+    }
+  } else if (!display) {
+    stop('plot_krona: display = FALSE, but no ouptput file specified')
+  } else if (in_rstudio & !in_console) {
+    # FIXME: while running chunks and clicking into the console,
+    #   in_console will become TRUE and the browser will open
+    outfile = tempfile(fileext = '.krona.html')
+  } else {
+    doc = try_run(knitr::current_input(dir = T))
+    outdir = if (!is.null(doc)) {
+      # this directory should be automatically cleaned up after rendering
+      file.path(gsub('\\.[^\\.]*$', '_files', doc, perl = T), 'krona')
+    } else {
+      # if in console, we just specify this dir (not cleaned up)
+      'krona_files'
+    }
+    dir.create(outdir, F, T)
+    # determine a unique output file location, where neither HTML nor 
+    # snapshot images are overwritten to make sure that chunks don't
+    # interfere with each other
+    i = 1
+    while (T) {
+      f = file.path(outdir, paste0('krona_', i, c('.html', '.png', '.pdf', '.jpg')))
+      if (all(!file.exists(f))) {
+        outfile = f[1]
+        break
+      }
+      i = i + 1
+    }
+  }
   
   if (is.null(snapshot)) {
     snapshot = !html_out & !in_rstudio
   }
   stopifnot(is.logical(snapshot) && length(snapshot) == 1)
   
-  
-  outfile = if (!is.null(output)) {
-    output
-  } else if (in_rstudio) {
-    tempfile(fileext = '.krona.html')
-  } else {
-    doc = try_run(knitr::current_input(dir = T))
-    outdir = if (!is.null(doc)) {
-      gsub('\\.[^\\.]*$', '_krona_files', doc, perl = T)
-    } else {
-      # should not happen
-      '_krona_files'
+  if (verbose) {
+    cat(sprintf('Document format: %s (HTML: %s), RStudio: %s, Console: %s', 
+                if (is.null(outformat)) 'N/A' else outformat,
+                html_out, in_rstudio, in_console), 
+        sep='\n', file=stderr())
+    if (!is.null(output)) {
+      cat(paste0('Writing output to ', outfile), sep='\n', file=stderr())
     }
-    dir.create(outdir, F, T)
-    get_file(outdir)
   }
+  
   
   # prepare/validate input
   
@@ -494,9 +529,11 @@ plot_krona.matrix = function(taxonomy,
   close(f)
   
   # generate Krona chart from XML
-  cmd = paste(bin, '-o',
+  cmd = paste(c(bin, '-o',
               paste0('"', outfile, '"'),
-              paste0('"', xml_file, '"'))
+              if (!is.null(resources_url)) c( '-u', resources_url) else NULL,
+              paste0('"', xml_file, '"')),
+              collapse=' ')
   # print(paste(bin, '-o', outfile, xml_file, collapse=' '))
   
   if (.Platform$OS.type == 'windows') {
@@ -512,17 +549,6 @@ plot_krona.matrix = function(taxonomy,
   file.remove(xml_file)
   
   # Return the output
-  
-  if (verbose) {
-    cat(
-      sprintf(
-        'Embedding krona from %s.\nIn RStudio: %s\nIn console: %s\nSnapshot: %s\nHTML output: %s\n',
-        outfile, in_rstudio, in_console, snapshot, html_out
-      ), file = stderr()
-    )
-  }
-  
-  # take a snapshot if necessary
   
   make_url = function(path, opts) {
     args = paste(
@@ -546,6 +572,7 @@ plot_krona.matrix = function(taxonomy,
     html = readChar(outfile, file.info(outfile)$size)
     if (is.null(output))
       file.remove(outfile)
+    
     html = gsub('win.document.write', 'document.write', html, fixed = T)
     html = gsub('snapshotButton\\.disabled *= *false',
                 'snapshot()',
@@ -583,57 +610,85 @@ plot_krona.matrix = function(taxonomy,
       delay = snapshot_delay,
       vwidth = snapshot_dim[1],
       vheight = snapshot_dim[2],
-      debug = verbose,
+      debug = debug,
     )
     file.remove(snap_html_out)
     
+    if (verbose) {
+      cat(paste0('Created snapshot: ', snap), sep='\n', file=stderr())
+    }
+    
     if (display) {
-      return(knitr::include_graphics(snap, dpi = snapshot_res, auto_pdf = F))
+      if (in_console) {
+        browseURL(snap)
+      } else {
+        return(knitr::include_graphics(snap, dpi = snapshot_res, auto_pdf = F))
+      }
     }
   }
   
   # ... or embed / browse the output
   if (display) {
     if (in_console) {
-      browseURL(outfile)
-    } else {
-      if (!('htmltools' %in% rownames(installed.packages()))) {
-        stop("plot_krona: the htmltools package is required for HTML output.")
-      }
-      if (html_out & !in_rstudio) {
-        # Render to HTML: use Iframe (file is then encoded as text/html)
-        # FIXME: may have size limitation
-        f = htmltools::tags$iframe(
-          src = outfile,
-          width = iframe_width,
-          height = iframe_height,
-          scrolling = 'no',
-          seamless = 'seamless',
-          frameBorder = '0'
-        )
-        # We create a new class with an associated 'knit_print' method
-        # (see below), which finally attaches a 'knit_asis_htmlwidget'
-        # class to the result. This is all done to obtain a proper figure caption.
-        # FIXME: is there a better way to allow captions? This strategy exploits
-        #  an implementation detail, which may change (see sew.knit_asis in output.R)
-        return(structure(list(f), class='embedded_krona_html_widget'))
-      } else {
-        # in RStudio: use 'srcdoc' to embed whole document
-        # (would be best for HTML output as well, but takes a long time rendering)
-        html = readChar(outfile, file.info(outfile)$size)
-        file.remove(outfile)
-        return(
-          htmltools::tags$iframe(
-            srcdoc = html,
-            width = iframe_width,
-            height = iframe_height,
-            scrolling = 'no',
-            seamless = 'seamless',
-            frameBorder = '0'
-          )
-        )
-      }
+      return(browseURL(outfile))
     }
+    if (!('htmltools' %in% rownames(installed.packages()))) {
+      stop("plot_krona: the htmltools package is required for HTML output.")
+    }
+    if (in_rstudio | html_out & minify) {
+      # in RStudio: use 'srcdoc' to embed whole document
+      html = readChar(outfile, file.info(outfile)$size)
+      # file is not needed anymore
+      if (is.null(output))
+        file.remove(outfile)
+      # minify the included scripts
+      if (is.null(resources_url) & minify) {
+        if (!('js' %in% rownames(installed.packages()))) {
+          stop("plot_krona: the 'js' package is required with 'minify=TRUE'")
+        }
+        js_pos = gregexec('< *script[^>]*>(.*?)(< */ *script *>)', html)[[1]][2:3,,drop=F]
+        for (num in ncol(js_pos):1) {
+          start = js_pos[1, num]
+          end = js_pos[2, num] - 1
+          jscript = substr(html, start, end)
+          jscript = suppressWarnings(js::uglify_optimize(jscript))
+          html = paste0(substr(html, 1, start-1), jscript, substr(html, end+1, nchar(html, type='bytes')))
+        }
+      }
+      # remove line breaks from node hierarchy
+      html = gsub('(</?(krona|attributes|attribute|color|dataset|node|n|c)[^>]*>)\n', '\\1', html)
+      # return the IFrame
+      iframe = htmltools::tags$iframe(
+        srcdoc = html,
+        width = iframe_width,
+        height = iframe_height,
+        scrolling = 'no',
+        seamless = 'seamless',
+        frameBorder = '0'
+      )
+    } else  if (html_out) {
+      # Render to HTML without minifying:
+      # Use the src attribute instead (file is then encoded as text/html)
+      # Minifying removes all the line breaks in the Javascript code, while the
+      # presence of many lines makes pandoc slow
+      # FIXME: src may have size limitation
+      iframe = htmltools::tags$iframe(
+        src = outfile,
+        width = iframe_width,
+        height = iframe_height,
+        scrolling = 'no',
+        seamless = 'seamless',
+        frameBorder = '0'
+      )
+    } else {
+      stop('plot_krona: snapshot = FALSE is not possible in static document formats')
+    }
+    # We create a new class with an associated 'knit_print' method
+    # (see below), which finally attaches a 'knit_asis_htmlwidget'
+    # class to the result. This is all done to obtain a proper figure caption.
+    # FIXME: is there a better way to allow captions? This strategy exploits
+    #  an implementation detail, which may change (see sew.knit_asis in output.R)
+    return(structure(list(iframe), class='embedded_krona_html_widget'))
   }
 }
 
