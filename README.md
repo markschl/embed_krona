@@ -16,6 +16,11 @@ The following snapshot image of a Krona chart gives an overview of the taxa in t
 
 ![GlobalPatterns Krona chart](krona/global_patterns.png)
 
-## How to use
+## Tutorial
 
-An introduction [is found here](example.md). The original R-Markdown document used to generate this webpage is [example.Rmd](example.Rmd). The rendered PDF output of the same document [is found here](example.pdf). For a documentation currently refer to the [R script](embed_krona.R). 
+A small tutorial is provided in the [example R-Markdown document](example.Rmd). Two rendered versions can be downloaded:
+
+- A [*HTML* webpage](example.html) with embedded interactive charts
+- A [*PDF* document](example.pdf)
+
+For a documentation of all possible options for `plot_krona` see the [R script](embed_krona.R). 

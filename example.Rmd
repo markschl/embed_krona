@@ -1,14 +1,14 @@
 ---
 title: Example analyzes
 output:
-  bookdown::github_document2: { fig_caption: yes, number_sections: no }
-  github_document: default
   bookdown::html_document2: { fig_caption: yes, number_sections: no }
-  word_document: default
+  html_document: default
   bookdown::pdf_document2: { fig_caption: yes, number_sections: no }
   pdf_document: default
+  bookdown::github_document2: { fig_caption: yes, number_sections: no }
+  github_document: default
+  word_document: default
   rtf_document: default
-  html_document: default
   odt_document: default
 papersize: a4
 linkcolor: blue
@@ -75,7 +75,6 @@ With phyloseq objects, it is also very simple to have different groups in the ch
 
 ```{r gpgrouped, fig.cap='(ref:gpgrouped)'}
 plot_krona(GlobalPatterns, group_vars='SampleType',
-           output='krona/gp_datasets.html',
            snapshot_dim=c(5, 4))
 ```
 
@@ -109,7 +108,6 @@ The result (Figure \@ref(fig:granola)) is equivalent to the [original chart](htt
 ```{r granola, fig.cap='(ref:granola)'}
 plot_krona(hierarchy, dataset_abund = abund,
            root_label = 'Granola serving', total_label = 'Grams',
-           output = 'krona/granola.html',
            snapshot_dim = c(5, 4))
 ```
 
@@ -152,8 +150,7 @@ stopifnot(taxa_names(kostic) == rownames(res))
 plot_krona(kostic,
            color_values = res$log2FoldChange,
            color_label = 'log2 fold change',
-           color_value_range = c(-1.8, 1.8), # optional, to adjust the color scale
-           output = 'krona/kostic.html')
+           color_value_range = c(-1.8, 1.8)) # optional, to adjust the color scale
 ```
 
 The interactive charts now have a checkbox on the left ("Color by log2 fold change"), which allows activating this color scheme. In the static snapshot, the color scheme is automatically activated (using `krona_opts=c(color='true')`). The strong association of *Fusobacterium* with the cancer can be clearly seen in this krona chart, although there actually isn't any indication of which associations were statistically significant. For example for species or "Unknown" names with multiple OTUs, the log fold change is calculated as the average of the log fold changes from each OTU, weighted by the OTU abundances. The same is done at higher taxonomic levels.
