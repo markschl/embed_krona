@@ -1,9 +1,9 @@
 ---
 title: Example analyzes
 output:
-  bookdown::pdf_document2: { fig_caption: yes, number_sections: no }
-  html_document: default
   bookdown::html_document2: { fig_caption: yes, number_sections: no }
+  html_document: default
+  bookdown::pdf_document2: { fig_caption: yes, number_sections: no }
   pdf_document: default
   bookdown::github_document2: { fig_caption: yes, number_sections: no }
   github_document: default
@@ -14,6 +14,12 @@ papersize: a4
 linkcolor: blue
 ---
 
+## Installation
+
+Krona can be installed according to [these instructions](https://github.com/marbl/Krona/wiki/Installing). Alternatively, the KronaTools directory can be placed anywhere and its path specified manually (see below). The script *embed_krona.R* has to be downloaded and loaded with `source`.
+
+*Dependencies*: Embedding interactive charts requires the `htmltools` package (should be present if rmarkdown is installed) and the `js` package. Taking snapshots requires the `webshot` package (also make sure to run `webshot::install_phantomjs()` after the installation).
+
 ## Simple charts from phyloseq objects
 
 In order to demonstrate `embed_krona`, we use the GlobalPatterns dataset from the [phyloseq](https://joey711.github.io/phyloseq/index.html) package, even though the phyloseq format is not the only way to provide data (see below).
@@ -23,6 +29,8 @@ library(phyloseq)
 library(tibble)
 # load the functions for plotting Krona charts
 source('embed_krona.R')
+# or with internet connection:
+# source('https://raw.githubusercontent.com/markschl/embed_krona/master/embed_krona.R')
 # load the phyloseq object
 data(GlobalPatterns)
 ```
@@ -35,7 +43,7 @@ A krona chart can be directly produced from the phyloseq object with the followi
 plot_krona(GlobalPatterns)
 ```
 
-For the above to work, Krona [must be installed](https://github.com/marbl/Krona/wiki/Installing) on the system[^1]. Alternatively, the *KronaTools* directory can be manually extracted somewhere, and the location specified directly:
+Instead of installing Krona system-wide, the *KronaTools* directory can be manually extracted somewhere, and the location specified directly:
 
 [^1]: more specifically, `ktImportXML` must be available in `PATH`
 

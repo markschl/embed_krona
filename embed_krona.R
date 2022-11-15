@@ -121,8 +121,9 @@
 #'   all of the older versions.
 #'   
 #'   Embedding interactive charts requires 'htmltools' (should be present if
-#'   rmarkdown is installed), while taking snapshots requires the 'webshot'
-#'   package.
+#'   rmarkdown is installed) and the 'js' package (if minify=TRUE).
+#'   Taking snapshots requires the 'webshot' package (also make sure to run
+#'   `webshot::install_phantomjs()` after the installation).
 #'   
 #'   Temporary output files will be stored in the Knitr plot directory 
 #'   (named after the R-Markdown file with a '_files' suffix). This directory
@@ -683,12 +684,15 @@ plot_krona.matrix = function(taxonomy,
     } else {
       stop('plot_krona: snapshot = FALSE is not possible in static document formats')
     }
-    # We create a new class with an associated 'knit_print' method
-    # (see below), which finally attaches a 'knit_asis_htmlwidget'
-    # class to the result. This is all done to obtain a proper figure caption.
-    # FIXME: is there a better way to allow captions? This strategy exploits
-    #  an implementation detail, which may change (see sew.knit_asis in output.R)
-    return(structure(list(iframe), class='embedded_krona_html_widget'))
+    if (html_out) {
+      # We create a new class with an associated 'knit_print' method
+      # (see below), which finally attaches a 'knit_asis_htmlwidget'
+      # class to the result. This is all done to obtain a proper figure caption.
+      # FIXME: is there a better way to allow captions? This strategy exploits
+      #  an implementation detail, which may change (see sew.knit_asis in output.R)
+      return(structure(list(iframe), class='embedded_krona_html_widget'))
+    }
+    return(iframe)
   }
 }
 
