@@ -1,9 +1,9 @@
 ---
 title: Example analyzes
 output:
-  bookdown::html_document2: { fig_caption: yes, number_sections: no }
-  html_document: default
   bookdown::pdf_document2: { fig_caption: yes, number_sections: no }
+  html_document: default
+  bookdown::html_document2: { fig_caption: yes, number_sections: no }
   pdf_document: default
   bookdown::github_document2: { fig_caption: yes, number_sections: no }
   github_document: default
@@ -67,11 +67,11 @@ plot_krona(GlobalPatterns, output='krona/global_patterns.html', display=F)
 
 In R-Markdown documents displayed in Rstudio or in HTML output, an interactive chart is embedded. If `plot_krona` is issued in the R console, a browser window with an interactive chart opens. In static documents, a PNG snapshot is generated. The dimensions are controlled with *snapshot_dim* (dimensions in inches). Otherwise important settings are *snapshot_format* ('png' or 'pdf' for vector graphics), *snapshot_fontsize* (7 by default) or *snapshot_chart_size* controlling the size of the margins (default 0.7).
 
-The following command embeds a PDF chart (Figure \@ref(fig:gppdf)), which means that the chart is included as vector graphics in PDF documents. This looks sharper, usually produces smaller files, but on the downside makes lines look thicker and complex charts may slow down your PDF reader. PDFs are usually not displayed in HTML output.
+The following command embeds a PDF chart (Figure \@ref(fig:gppdf)), which means that the chart is included as vector graphics in PDF documents. This looks sharper, usually produces smaller files, but on the downside makes lines look thicker and complex charts may slow down your PDF reader. PDFs may be displayed in HTML output depending on the browser (but require adjustments of `out.width` and `out.height` chunk options).
 
 (ref:gppdf) Static chart of the GlobalPatterns dataset embedded as vector graphics in PDF format (or just white area in HTML documents).
 
-```{r gppdf, fig.cap='(ref:gppdf)'}
+```{r gppdf, fig.cap='(ref:gppdf)', out.width='80%', out.height='450px'}
 plot_krona(GlobalPatterns, snapshot_format='pdf', snapshot = T)
 ```
 
