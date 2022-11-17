@@ -44,13 +44,13 @@ Whether interactive charts or static snapshots are embedded depends on whether t
 
 |  	| **interactive chart** 	| **snapshot image\*** 	| **remarks** 	|
 |---	|---	|---	|---	|
-| Inline view below R-Markdown chunks (Rstudio) 	| yes 	| yes (png) 	| (1) interactive chart size can be changed with *iframe_width* / *iframe_height*, but this just adds scrollbars, the viewport does not change. (2) Snapshots (with snapshot=TRUE) can appear too large  since expanded to 100% width. (3) ‘krona_opts’ have no effect.(4) out.width/out.height chunk options have no effect 	|
-| R console 	| yes (in browser) 	| (yes) 	| (1) snapshot images are produced but not displayed; (2) *krona_opts* have no effect 	|
-| HTML (html_document) 	| yes 	| yes (png, pdf) 	| (1) interactive chart: *iframe_height* modifies the height (e.g. '600px'); (2) if snapshots appear too small, either increase snapshot_dim or resize set out.width (e.g. to ’90%’) to zoom in.	|
-| PDF (pdf_document) 	| - 	| yes (png, pdf) 	| adjusting *snapshot_dim* works well 	|
+| Inline view below R-Markdown chunks (Rstudio) 	| yes 	| yes (png) 	| (1) interactive chart size can be changed with `iframe_width` / `iframe_height`, but this just adds scrollbars, the viewport does not change. (2) Snapshots (with `snapshot=TRUE`) can appear too large since expanded to 100% width. (3) `out.width` / `out.height` chunk options have no effect	|
+| R console 	| yes (in browser) 	| yes (image viewer) 	| set `display=FALSE` for simple conversion without viewing	|
+| HTML (html_document) 	| yes 	| yes (png, pdf) 	| (1) interactive chart: `iframe_height` modifies the height (e.g. `600px`); (2) if snapshots appear too small, either increase `snapshot_dim` or set `out.width` (e.g. to `90%`) to zoom in.	|
+| PDF (pdf_document) 	| - 	| yes (png, pdf) 	| control size with `snapshot_dim` 	|
 | DOCX (word_document) 	| - 	| yes (png, pdf) 	| Figures always have the same (incorrect) size 	|
-| OpenDocument Text (odt_document) 	| - 	| yes (png, pdf) 	| Set out.width to same value as width in *snapshot_dim* (e.g.: *out.width='6in'*). Otherwise, the figure will be huge. 	|
+| OpenDocument Text (odt_document) 	| - 	| yes (png, pdf) 	| Set `out.width` to same value as width in `snapshot_dim` (e.g.: `out.width='6in'`). Otherwise, the figure will be huge. 	|
 | RTF text (rtf_document) 	| - 	| yes (png) 	| see ODT 	|
-| Github Markdown (github_document) 	| yes 	| yes 	| see HTML 	|
+| Github Markdown (github_document) 	| (yes) 	| yes 	| See HTML; interactive charts not displayed on Github (use snapshots)	|
 
-\* *snapshot_format* values can be *png*, *pdf* or *jpeg*, however jpeg rarely works, produces a black background with many formats
+\* `snapshot_format` values can be `png`, `pdf` or `jpeg`, however jpeg rarely works, produces a black background with many formats

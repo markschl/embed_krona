@@ -242,7 +242,7 @@ plot_krona.matrix = function(taxonomy,
                              snapshot_format = 'png',
                              snapshot_res = 220,
                              snapshot_dim = c(6, 5),
-                             snapshot_delay = 2,
+                             snapshot_delay = 0.8,
                              snapshot_fontsize = 7,
                              snapshot_chart_size = 0.7,
                              iframe_width = '100%',
@@ -288,7 +288,7 @@ plot_krona.matrix = function(taxonomy,
       stop('plot_krona: kronatools_dir supplied, but KronaTools not found in the directory')
     }
   }
-
+  
   # where is rendering happending, and for which format?
   try_run = function(...) suppressWarnings(try(..., silent=T))
   # FIXME: not sure if this is the best way to detect these settings
@@ -297,8 +297,9 @@ plot_krona.matrix = function(taxonomy,
   html_out = isTRUE(try_run(knitr::is_html_output())) | 
     !is.null(outformat) && grepl('gfm', outformat)  # gfm = github_document
   in_console = !isTRUE(try_run(rstudioapi::getActiveDocumentContext()$id != "#console")) &
-    is.null(outformat)
-
+      is.null(outformat) |
+    isTRUE(try_run(endsWith(rstudioapi::getActiveDocumentContext()$path, '.R')))
+  
   if (!is.null(output)) {
     ext = tail(strsplit(output, '.', fixed=T)[[1]], 1)
     if (ext %in% c('png', 'pdf', 'jpeg')) {
@@ -436,10 +437,9 @@ plot_krona.matrix = function(taxonomy,
       float_fn(example)
   }
   value_fn = get_format_fn(as.vector(as.matrix(dataset_abund)))
-  color_fn = if (!is.null(color_values))
+  color_fn = if (!is.null(color_values)) {
     float_fn(as.vector(color_values))
-  else
-    NULL
+  } else { NULL }
   
   write_xml_node = function(name, tax, dataset_abund, color, file) {
     n = colSums(dataset_abund)
@@ -465,10 +465,11 @@ plot_krona.matrix = function(taxonomy,
       # write child nodes
       for (val in unique(na.omit(tax[, 1]))) {
         sel = which(val == tax[,1] & !is.na(tax[,1]))
-        tsub = if (ncol(tax) > 1)
+        tsub = if (ncol(tax) > 1) {
           tax[sel, 2:ncol(tax), drop = F]
-        else
+        } else {
           NULL
+        }
         write_xml_node(tax[sel[1], 1], tsub, dataset_abund[sel, , drop = F], color[sel], file)
       }
     }
@@ -551,12 +552,20 @@ plot_krona.matrix = function(taxonomy,
   
   # Return the output
   
-  make_url = function(path, opts) {
-    args = paste(
+  make_url_params = function(opts) {
+    paste(
       sapply(names(opts), function(p) paste(p, opts[p], sep = '=')), 
       collapse = '&'
     )
-    sprintf('file://%s?%s', normalizePath(path), args)
+  }
+  
+  make_file_url = function(path, opts) {
+    sprintf('file:///%s?%s', normalizePath(path), make_url_params(opts))
+  }
+  
+  # activate custom coloring if necessary
+  if (!is.null(color_values) && !isTRUE(krona_opts['color'] == 'false')) {
+    krona_opts['color'] = 'true'
   }
   
   if (snapshot) {
@@ -568,41 +577,42 @@ plot_krona.matrix = function(taxonomy,
         )
       )
     }
+    if (!webshot::is_phantomjs_installed()) {
+      stop('PhantomJS not installed, please run webshot::install_phantomjs()')
+    }
+    
     # modify JavaScript code to automatically take a snapshot after loading
     # tested with version 2.8.1
     html = readChar(outfile, file.info(outfile)$size)
     if (is.null(output))
       file.remove(outfile)
     
-    html = gsub('win.document.write', 'document.write', html, fixed = T)
-    html = gsub('snapshotButton\\.disabled *= *false',
-                'snapshot()',
+    # modify snapshot() function to not open in new window
+    html = gsub('var +\\w+ += +window.open\\(\\) *; *\r?\n *\\w+.document.write', 
+                'document.write', html, perl=T)
+    # hide download link from snapshot
+    html = gsub('Download Snapshot', '', html, ignore.case = T)
+    # make sure the snapshot is directly taken after loading
+    inject_code = sprintf(
+      'load(); tweenLength=0; bufferFactor=%.3f; setTimeout(snapshot, %.0f);',
+      .1 / snapshot_chart_size, snapshot_delay * 800
+    )
+    html = gsub('window\\.onload *= *load *',
+                sprintf('window.onload = function() { %s };', inject_code),
                 html,
                 ignore.case = T)
-    html = gsub('Download Snapshot', '', html, ignore.case = T)
-    # add a little more space on the outside so labels are not cropped too much
-    # (bufferFactor is also controlled by "chart size" +/- buttons)
-    html = gsub(
-      'var bufferFactor *= *[^;]+',
-      sprintf('var bufferFactor = %.3f', .1 / snapshot_chart_size),
-      html
-    )
-    # make sure that the original HTML is not changed
+    # write the modified version to file
     prefix = gsub('\\.[^\\.]+$', '', outfile, perl = T)
     snap_html_out = paste0(prefix, '.krona.snapshot.html')
     writeChar(html, snap_html_out)
     snap = paste0(prefix, '.', snapshot_format)
-    if (!is.null(color_values)) {
-      krona_opts['color'] = 'true'
-    }
-    if (!('font' %in% names(krona_opts))) {
-      # Krona charts appears to use 11px font size for the 11pt font,
-      # so we calculate the font size in px required to obtain the correct
-      # size in pt at final resolution
-      krona_opts['font'] = round(snapshot_fontsize * snapshot_res / 72.72, 1)
-    }
     
-    url = make_url(snap_html_out, krona_opts)
+    # Krona charts appears to use 11px font size for the 11pt font,
+    # so we calculate the font size in px required to obtain the correct
+    # size in pt at final resolution
+    krona_opts['font'] = round(snapshot_fontsize * snapshot_res / 72.72, 1)
+    
+    url = make_file_url(snap_html_out, krona_opts)
     snapshot_dim = round(snapshot_dim * snapshot_res)
     
     webshot::webshot(
@@ -637,25 +647,29 @@ plot_krona.matrix = function(taxonomy,
       stop("plot_krona: the htmltools package is required for HTML output.")
     }
     if (in_rstudio | html_out & minify) {
+      if (!('js' %in% rownames(installed.packages()))) {
+        stop("plot_krona: the 'js' package is required with 'minify=TRUE'")
+      }
       # in RStudio: use 'srcdoc' to embed whole document
       html = readChar(outfile, file.info(outfile)$size)
       # file is not needed anymore
       if (is.null(output))
         file.remove(outfile)
       # minify the included scripts
-      if (is.null(resources_url) & minify) {
-        if (!('js' %in% rownames(installed.packages()))) {
-          stop("plot_krona: the 'js' package is required with 'minify=TRUE'")
-        }
+      if (is.null(resources_url)) {
         js_pos = gregexec('< *script[^>]*>(.*?)(< */ *script *>)', html)[[1]][2:3,,drop=F]
         for (num in ncol(js_pos):1) {
           start = js_pos[1, num]
           end = js_pos[2, num] - 1
           jscript = substr(html, start, end)
+          # modify JS code to make sure URL parameters are parsed even if there is no URL
+          jscript = gsub('document.location', sprintf('"url?%s"', make_url_params(krona_opts)), jscript, fixed=T)
+          # minify the script
           jscript = suppressWarnings(js::uglify_optimize(jscript))
           html = paste0(substr(html, 1, start-1), jscript, substr(html, end+1, nchar(html, type='bytes')))
         }
       }
+      
       # remove line breaks from node hierarchy
       html = gsub('(</?(krona|attributes|attribute|color|dataset|node|n|c)[^>]*>)\n', '\\1', html)
       # return the IFrame

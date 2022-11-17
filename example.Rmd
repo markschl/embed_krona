@@ -2,8 +2,8 @@
 title: Example analyzes
 output:
   bookdown::pdf_document2: { fig_caption: yes, number_sections: no }
-  html_document: default
   bookdown::html_document2: { fig_caption: yes, number_sections: no }
+  html_document: default
   pdf_document: default
   bookdown::github_document2: { fig_caption: yes, number_sections: no }
   github_document: default
@@ -67,9 +67,9 @@ plot_krona(GlobalPatterns, output='krona/global_patterns.html', display=F)
 
 In R-Markdown documents displayed in Rstudio or in HTML output, an interactive chart is embedded. If `plot_krona` is issued in the R console, a browser window with an interactive chart opens. In static documents, a PNG snapshot is generated. The dimensions are controlled with *snapshot_dim* (dimensions in inches). Otherwise important settings are *snapshot_format* ('png' or 'pdf' for vector graphics), *snapshot_fontsize* (7 by default) or *snapshot_chart_size* controlling the size of the margins (default 0.7).
 
-The following command embeds a PDF chart (Figure \@ref(fig:gppdf)), which means that the chart is included as vector graphics in PDF documents. This looks sharper, usually produces smaller files, but on the downside makes lines look thicker and complex charts may slow down your PDF reader. PDFs may be displayed in HTML output depending on the browser (but require adjustments of `out.width` and `out.height` chunk options).
+The following command embeds a PDF chart (Figure \@ref(fig:gppdf)), which means that the chart is included as vector graphics in PDF documents. This looks sharper, usually produces smaller files, but on the downside makes lines look thicker and complex charts may slow down your PDF reader. Embedded PDFs can be displayed in some browsers (but require adjustments of `out.width` and `out.height` chunk options).
 
-(ref:gppdf) Static chart of the GlobalPatterns dataset embedded as vector graphics in PDF format (or just white area in HTML documents).
+(ref:gppdf) Static chart of the GlobalPatterns dataset embedded as vector graphics in PDF format
 
 ```{r gppdf, fig.cap='(ref:gppdf)', out.width='80%', out.height='450px'}
 plot_krona(GlobalPatterns, snapshot_format='pdf', snapshot = T)
@@ -167,4 +167,4 @@ plot_krona(kostic,
            color_value_range = c(-1.8, 1.8)) # optional, to adjust the color scale
 ```
 
-The interactive charts now have a checkbox on the left ("Color by log2 fold change"), which allows activating this color scheme. In the static snapshot, the color scheme is automatically activated (using `krona_opts=c(color='true')`). The strong association of *Fusobacterium* with the cancer can be clearly seen in this krona chart, although there actually isn't any indication of which associations were statistically significant. For example for species or "Unknown" names with multiple OTUs, the log fold change is calculated as the average of the log fold changes from each OTU, weighted by the OTU abundances. The same is done at higher taxonomic levels.
+The interactive charts now have a checkbox on the left ("Color by log2 fold change"), which allows activating this color scheme (although it should already be active). The strong association of *Fusobacterium* with the cancer can be clearly seen in this krona chart, although there actually isn't any indication of which associations were statistically significant. For example for species or "Unknown" names with multiple OTUs, the log fold change is calculated as the average of the log fold changes from each OTU, weighted by the OTU abundances. The same is done at higher taxonomic levels.
