@@ -1,5 +1,4 @@
-Krona charts in R
-================
+# Krona charts in R(Studio)
 
 This repo provides a function for creating [Krona
 charts](https://github.com/marbl/Krona/wiki) in R.
