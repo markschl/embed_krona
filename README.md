@@ -41,7 +41,7 @@ script](embed_krona.R).
 
 Whether interactive charts or static snapshots are embedded depends on
 whether the `plot_krona` function is executed from within R-Markdown
-chunks, in the R console or rendered to [different R-Markdown document
+chunks, in the R console or rendered to [different document
 formats](https://rmarkdown.rstudio.com/formats.html). Snapshots can be
 enforced with `snapshot=TRUE`.
 
