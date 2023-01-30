@@ -595,7 +595,7 @@ plot_krona.matrix = function(taxonomy,
     # make sure the snapshot is directly taken after loading
     inject_code = sprintf(
       'load(); tweenLength=0; bufferFactor=%.3f; setTimeout(snapshot, %.0f);',
-      .1 / snapshot_chart_size, snapshot_delay * 800
+      .1 / snapshot_chart_size, snapshot_delay * 1000
     )
     html = gsub('window\\.onload *= *load *',
                 sprintf('window.onload = function() { %s };', inject_code),
