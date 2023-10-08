@@ -158,7 +158,7 @@ plot_krona.phyloseq = function (community,
     if (!taxa_are_rows(community))
       abund_tab = t(abund_tab)
     taxa_subset = rowSums(abund_tab) > 0
-    abund_tab = abund_tab[taxa_subset,]
+    abund_tab = abund_tab[taxa_subset, , drop=F]
   } else {
     abund_tab = NULL
     # convert to matrix if necessary
@@ -169,9 +169,9 @@ plot_krona.phyloseq = function (community,
     stopifnot(nrow(dataset_abund) == nrow(taxonomy))
     # remove zero-abundance taxa
     taxa_subset = rowSums(dataset_abund) > 0
-    dataset_abund = dataset_abund[taxa_subset,]
+    dataset_abund = dataset_abund[taxa_subset, , drop=F]
   }
-  taxonomy = taxonomy[taxa_subset,]
+  taxonomy = taxonomy[taxa_subset, , drop=F]
   if (!is.null(color_values)) {
     color_values = color_values[taxa_subset]
   }
@@ -198,7 +198,7 @@ plot_krona.phyloseq = function (community,
     tax_vars = setdiff(colnames(tax_table(community)), color_var)
   stopifnot(is.character(tax_vars))
   
-  taxonomy = taxonomy[, tax_vars]
+  taxonomy = taxonomy[, tax_vars, drop=F]
   
   plot_krona.matrix(
     taxonomy,
