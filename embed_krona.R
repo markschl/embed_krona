@@ -633,7 +633,7 @@ plot_krona.matrix = function(taxonomy,
       if (in_console) {
         browseURL(snap)
       } else {
-        return(knitr::include_graphics(snap, dpi = snapshot_res, auto_pdf = F))
+        return(knitr::include_graphics(snap, dpi = snapshot_res, auto_pdf = F, rel_path = F))
       }
     }
   }
