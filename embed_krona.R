@@ -2,29 +2,27 @@
 #' and writes it to HTML, and/or embeds it in RStudio or HTML documents
 #' generated from R-Markdown.
 #'
-#' @param community (taxonomy): Character matrix or data frame with taxonomic
-#'   assignments (or generally data representing some hierarchy), specified along
-#'   with `dataset_abund` and `abund_tab`; or a phyloseq object.
-#' @param dataset_abund: (optional) Numeric matrix, data frame or a single vector
-#'   with taxa abundances in rows (same order as in `community`) and datasets in colunns.
-#'   If not specified, it `abund_tab` needs to be given. Phyloseq objects
-#'   already have abundance data (otu table) and therefore don't require 
-#'   `dataset_abund` or `abund_tab`. However, `dataset_abund` will still be used
-#'   if specified along with phyloseq object. The row order must match the taxa
-#'   in the phyloseq object, see taxa_names()).
-#'   With only one dataset (one column), the column name does not matter, but 
-#'   with multiple datasets, the column names will appear as dataset names.
-#' @param abund_tab: (optional) Numeric matrix or data frame containing taxa abundances 
-#'    ("otu table"), with samples in columns and taxa in rows (same order as
-#'    in `community`). Needed if `dataset_abund` is not specified, abundances are
-#'    summarized with an optional grouping (see `group`). Row values are accumulated
-#'    by default (configurable with `summary_fn`)
-#' @param group: (optional) Character vector of length ncol(abund_tab) specifying 
-#'   the grouping of samples in `abund_tab` into different datasets. The values 
-#'   will be accumulated (but configurable, see `summary_fn`). If not specified, 
-#'   a single dataset will be assumed.
+#' @param classification: Character matrix or data frame with a hierarchical
+#'   classification (e.g. taxonomic lineages).
+#' @param magnitude: (optional) Numeric matrix, data frame or a single vector
+#'   with magnitudes (abundances) for each of the rows (lineages) in the
+#'   `classification` matrix. If not specified, abundances are either taken
+#'   from the phyloseq object, or equal magnitudes are assumed for all lineages.
+#'   The row order of `classification` and `magnitude` must match, as well as
+#'   the row names (if present).
+#' @param physeq: Phyloseq object with `tax_table` and `otu_table` components
+#'   (and `sample_data` if `group_vars` are specified).
+#'   Separate `classification` and `magnitude` components are not needed in this case.
+#' @param group: (optional) Character vector of length `ncol(abund_tab)` specifying 
+#'   the grouping of columns in `magnitude` into different data sets. 
+#'   If not specified, one single global data set is assumed.
+#'   If 'all', all columns of the `magnitude` matrix are assumed to represent
+#'   separate data sets.
+#'   The magnitudes are accumulated by default (but configurable using `summary_fn`). 
 #' @param tax_vars: (optional) Character vector with taxonomy variables to be
-#'   chosen from the phyloseq object. Default is to use all except for `color_var`.
+#'   chosen from the phyloseq object or community matrix.
+#'   Default is to use all columns except for `color_var` and all variables
+#'   listed in `attributes`.
 #' @param group_vars: (optional) Character vector with sample variables that 
 #'   should be used used for creating a `group` vector from the phyloseq object.
 #'   The columns will be joined together using `group_sep`.
@@ -135,8 +133,8 @@ plot_krona <- function(community, ...) {
 }
 
 
-plot_krona.phyloseq = function (community,
-                                dataset_abund = NULL,
+plot_krona.phyloseq = function (physeq,
+                                magnitude = NULL,
                                 tax_vars = NULL,
                                 group_vars = NULL,
                                 color_var = NULL,
@@ -147,30 +145,24 @@ plot_krona.phyloseq = function (community,
                                 ...)
 {
   require(phyloseq)
-  stopifnot('phyloseq' %in% class(community))
+  stopifnot('phyloseq' %in% class(physeq))
   stopifnot(is.character(group_sep) && length(group_sep) == 1)
   stopifnot(is.function(shorten_group) && length(shorten_group) == 1)
   
-  taxonomy = as(tax_table(community), 'matrix')
-  
-  if (is.null(dataset_abund)) {
-    abund_tab = as(otu_table(community), 'matrix')
-    if (!taxa_are_rows(community))
-      abund_tab = t(abund_tab)
-    taxa_subset = rowSums(abund_tab) > 0
-    abund_tab = abund_tab[taxa_subset, , drop=F]
+  taxonomy = as(tax_table(physeq), 'matrix')
+
+  if (is.null(magnitude)) {
+    magnitude = as(otu_table(physeq), 'matrix')
+    if (!taxa_are_rows(physeq))
+      magnitude = t(magnitude)
   } else {
-    abund_tab = NULL
-    # convert to matrix if necessary
-    if (length(dim(dataset_abund)) == 0)
-      dataset_abund = cbind(dataset_abund)
-    stopifnot(any(c('data.frame', 'matrix') %in% class(dataset_abund)))
-    stopifnot(all(apply(dataset_abund, 2, is.numeric)))
-    stopifnot(nrow(dataset_abund) == nrow(taxonomy))
-    # remove zero-abundance taxa
-    taxa_subset = rowSums(dataset_abund) > 0
-    dataset_abund = dataset_abund[taxa_subset, , drop=F]
+    magnitude = as(magnitude, 'matrix')
+    stopifnot(nrow(magnitude) == nrow(taxonomy))
   }
+  
+  # remove zero-abundance taxa
+  taxa_subset = rowSums(magnitude) > 0
+  magnitude = magnitude[taxa_subset, , drop=F]
   taxonomy = taxonomy[taxa_subset, , drop=F]
   if (!is.null(color_values)) {
     color_values = color_values[taxa_subset]
@@ -178,7 +170,7 @@ plot_krona.phyloseq = function (community,
   
   group = if (!is.null(group_vars)) {
     stopifnot(is.character(group_vars))
-    sdata = as.data.frame(sample_data(community))
+    sdata = as.data.frame(sample_data(physeq))
     group = do.call(paste, c(sdata[, group_vars], list(sep=group_sep)))
     unname(shorten_group(group))
   } else {
@@ -195,15 +187,14 @@ plot_krona.phyloseq = function (community,
   }
   
   if (is.null(tax_vars))
-    tax_vars = setdiff(colnames(tax_table(community)), color_var)
+    tax_vars = setdiff(colnames(taxonomy), color_var)
   stopifnot(is.character(tax_vars))
   
   taxonomy = taxonomy[, tax_vars, drop=F]
   
   plot_krona.matrix(
     taxonomy,
-    abund_tab = abund_tab,
-    dataset_abund = dataset_abund,
+    magnitude,
     group = group,
     color_values = color_values,
     color_label = color_label,
@@ -212,8 +203,8 @@ plot_krona.phyloseq = function (community,
 }
 
 
-plot_krona.data.frame = function(taxonomy, ...) {
-  plot_krona.matrix(as(taxonomy, 'matrix'), ...)
+plot_krona.data.frame = function(classification, ...) {
+  plot_krona.matrix(as(classification, 'matrix'), ...)
 }
 
 plot_krona.taxonomyTable = function(taxonomy, ...) {
@@ -221,9 +212,8 @@ plot_krona.taxonomyTable = function(taxonomy, ...) {
 }
 
 
-plot_krona.matrix = function(taxonomy,
-                             dataset_abund = NULL,
-                             abund_tab = NULL,
+plot_krona.matrix = function(classification,
+                             magnitude = NULL,
                              group = NULL,
                              output = NULL,
                              display = TRUE,
@@ -363,59 +353,52 @@ plot_krona.matrix = function(taxonomy,
   }
   
   
-  # prepare/validate input
+  # prepare/validate classifications
   
   if (!is.null(unknown_label)) {
     stopifnot(is.character(unknown_label) && length(unknown_label) == 1)
-    taxonomy[is.na(taxonomy)] = unknown_label
+    classification[is.na(classification)] = unknown_label
   }
   
-  if (is.null(abund_tab) & is.null(dataset_abund)) {
-    stop("plot_krona: Either the 'dataset_abund' or 'abund_tab' arguments must be defined")
+  # prepare/validate magnitudes
+  
+  if (is.null(magnitude)) {
+    # nothing supplied: use equal magnitude for all
+    magnitude = cbind(setNames(rep(1, nrow(classification)), rownames(classification)))
   }
-  if (is.null(dataset_abund)) {
-    # OTU table must be defined
-    stopifnot(all(apply(abund_tab, 2, is.numeric)))
-    if ('data.frame' %in% class(abund_tab)) {
-      abund_tab = as.matrix(abund_tab)
-    } else if ('otu_table' %in% class(abund_tab)) {
-      tr = phyloseq::taxa_are_rows(abund_tab)
-      abund_tab = as(abund_tab, 'matrix')
-      if (!tr)
-        abund_tab = t(abund_tab)
-    } else if (!('matrix' %in% class(abund_tab))) {
-      stop("plot_krona: 'abund_tab' must be a matrix or data frame")
-    }
-    stopifnot(nrow(abund_tab) == nrow(taxonomy))
-    if (!is.null(rownames(abund_tab)) & !is.null(rownames(taxonomy))) {
-      stopifnot(rownames(abund_tab) == rownames(taxonomy))
-    }
-    dataset_abund = if (is.null(group)) {
-      cbind(rowSums(abund_tab))
-    } else {
-      stopifnot(ncol(abund_tab) == length(group))
-      if (!is.null(colnames(abund_tab)) & !is.null(names(group))) {
-        stopifnot(colnames(abund_tab) == names(group))
-      }
-      sapply(split(1:ncol(abund_tab), group),
-             function(i) apply(abund_tab[, i, drop = F], 1, summary_fn))
-    }
+  stopifnot(all(apply(magnitude, 2, is.numeric)))
+  if (nrow(magnitude) != nrow(classification) || 
+      !is.null(rownames(magnitude)) && !is.null(rownames(classification)) &&
+        !all.equal(rownames(magnitude), rownames(classification))) {
+    stop(paste("The taxa in magnitude matrix and classifications don't match;",
+               "their number should be equal and row names are expected to be absent or equal in both."))
   }
   
-  stopifnot(all(apply(dataset_abund, 2, is.numeric)))
-  if (nrow(dataset_abund) != nrow(taxonomy) ||
-      !all(rownames(dataset_abund) == rownames(taxonomy))) {
-    stop("Taxa names in count table and taxonomy don't match (row names)")
+  magnitude = as(magnitude, 'matrix')
+
+  if (is.null(group)) {
+    group = rep(1L, ncol(magnitude))
   }
-  
+  if (!(length(group) == 1 && group == 'all')) {
+    if (ncol(magnitude) != length(group) ||
+        !is.null(colnames(magnitude)) && !is.null(names(group)) &&
+          !all.equal(colnames(magnitude), names(group))) {
+      stop(paste("The groups and the columns of the magnitude matrix don't match;",
+                 "their number should be equal and names are expected to be absent or equal in both."))
+    }
+    l = lapply(split(1:ncol(magnitude), group),
+           function(i) apply(magnitude[, i, drop = F], 1, summary_fn))
+    magnitude = simplify2array(l, except=NA)
+  }
+
   if (any(is.na(color_values))) {
     stop("Invalid values (NAs) detected in 'color_values', which cannot be handled.")
   }
   
-  # if all equal in first column, use first column as root
-  if (length(unique(na.omit(taxonomy[, 1]))) == 1) {
-    root_label = taxonomy[1, 1]
-    taxonomy = taxonomy[, 2:ncol(taxonomy)]
+  # if all names are equal in first column, use first column as root
+  if (length(unique(na.omit(classification[, 1]))) == 1 && ncol(classification) > 1) {
+    root_label = classification[1, 1]
+    classification = classification[, 2:ncol(classification)]
   }
   
   # write XML file in format for KronaTools 2.0
@@ -436,13 +419,13 @@ plot_krona.matrix = function(taxonomy,
     else
       float_fn(example)
   }
-  value_fn = get_format_fn(as.vector(as.matrix(dataset_abund)))
+  value_fn = get_format_fn(magnitude)
   color_fn = if (!is.null(color_values)) {
     float_fn(as.vector(color_values))
   } else { NULL }
   
-  write_xml_node = function(name, tax, dataset_abund, color, file) {
-    n = colSums(dataset_abund)
+  write_xml_node = function(name, tax, abund, color, file) {
+    n = colSums(abund)
     cat(
       sprintf('<node name="%s">', name),
       sprintf('<n>%s</n>', paste(
@@ -452,7 +435,7 @@ plot_krona.matrix = function(taxonomy,
       file = file
     )
     if (!is.null(color)) {
-      col = apply(dataset_abund, 2, function(n)
+      col = apply(abund, 2, function(n)
         color_summary_fn(color, n))
       cat(sprintf('<c>%s</c>', paste(
         sprintf('<v>%s</v>', ifelse(is.nan(col), 0, color_fn(col))), collapse =
@@ -470,7 +453,7 @@ plot_krona.matrix = function(taxonomy,
         } else {
           NULL
         }
-        write_xml_node(tax[sel[1], 1], tsub, dataset_abund[sel, , drop = F], color[sel], file)
+        write_xml_node(tax[sel[1], 1], tsub, abund[sel, , drop = F], color[sel], file)
       }
     }
     cat('</node>', sep = '\n', file = file)
@@ -514,19 +497,19 @@ plot_krona.matrix = function(taxonomy,
       file = f
     )
   }
-  if (ncol(dataset_abund) > 1) {
+  if (ncol(magnitude) > 1) {
     d =
       cat(
         '<datasets>',
         paste(sprintf(
-          '<dataset>%s</dataset>', colnames(dataset_abund)
+          '<dataset>%s</dataset>', colnames(magnitude)
         ), collapse = '\n'),
         '</datasets>',
         sep = '\n',
         file = f
       )
   }
-  write_xml_node(root_label, taxonomy, dataset_abund, color_values, file = f)
+  write_xml_node(root_label, classification, magnitude, color_values, file = f)
   cat('</krona>', sep = '\n', file = f)
   close(f)
   

@@ -94,7 +94,21 @@ plot_krona(GlobalPatterns, group_vars='SampleType',
 
 ## Other input data (without phyloseq)
 
-As mentioned, phyloseq is not a requirement and charts can also be generated from any table with columns representing some hierarchy, along with a vector or data frame/matrix containing the dataset counts. Here we reproduce the [Krona example](https://github.com/marbl/Krona/wiki/Importing-text-and-XML-data) (same values as in [TSV](https://krona.sourceforge.net/examples/text.txt) or [XML-formatted](https://krona.sourceforge.net/examples/xml.txt) input files):
+As mentioned, phyloseq is not a requirement and charts can also be generated from any table with columns representing some hierarchy, along with a vector or data frame/matrix containing the abundances.
+
+Here, we extract the taxonomy and OTU tables from the phyloseq object and supply them separately. The (optional) grouping vector is obtained using `get_variable()` and supplied using the `group` argument (instead of `group_vars`)
+, an abundance (OTU) table can be defined (`abund_tab` argument), which is then summarized using a grouping vector of length `ncol(abund_tab)` (`group` argument) to obtain the abundances. For this example, the data is extracted from the phyloseq object before plotting. The result is equivalent to Figure \@ref(fig:gpgrouped).
+
+```{r eval=F}
+taxonomy = as(tax_table(GlobalPatterns), 'matrix')
+otus = as(otu_table(GlobalPatterns), 'matrix')
+stopifnot(taxa_are_rows(GlobalPatterns))  # the orientation matters!
+sample_type = get_variable(GlobalPatterns, 'SampleType')
+
+plot_krona(taxonomy, otus, group = sample_type)
+```
+
+In another example, we reproduce the [Krona example](https://github.com/marbl/Krona/wiki/Importing-text-and-XML-data) (same values as in [TSV](https://krona.sourceforge.net/examples/text.txt) or [XML-formatted](https://krona.sourceforge.net/examples/xml.txt) input files):
 
 ```{r}
 granola = tribble(
@@ -110,29 +124,19 @@ granola = tribble(
 )
 
 # hierarchical names component
-hierarchy = granola[1:3]
-# dataset abundances (grams)
-abund = granola[4:5]
+classification = granola[1:3]
+# magnitude (grams)
+magnitude = granola[4:5]
 ```
 
-The result (Figure \@ref(fig:granola)) is equivalent to the [original chart](https://krona.sourceforge.net/examples/xml.krona.html). Note that the dataset abundances have to be supplied to the `dataset_abund` argument.
+The result (Figure \@ref(fig:granola)) is equivalent to the [original chart](https://krona.sourceforge.net/examples/xml.krona.html). With `group = 'all'`, we indicate that the two brands should not be kept as separate groups (datasets) and not summarized. *Note* that the magnitudes could in theory be missing, which would result in equal weights for all rows in the classification.
 
 (ref:granola) The Granola example reproduced
 
 ```{r granola, fig.cap='(ref:granola)'}
-plot_krona(hierarchy, dataset_abund = abund,
+plot_krona(classification, magnitude, group = 'all',
            root_label = 'Granola serving', total_label = 'Grams',
            snapshot_dim = c(5, 4))
-```
-
-Alternatively, an abundance (OTU) table can be defined (`abund_tab` argument), which is then summarized using a grouping vector of length `ncol(abund_tab)` (`group` argument) to obtain the dataset abundances. For this example, the data is extracted from the phyloseq object before plotting. The result is equivalent to Figure \@ref(fig:gpgrouped).
-
-```{r eval=F}
-tax = as(tax_table(GlobalPatterns), 'matrix')
-otus = as(otu_table(GlobalPatterns), 'matrix')
-sample_type = get_variable(GlobalPatterns, 'SampleType')
-
-plot_krona(tax, abund_tab = otus, group = sample_type)
 ```
 
 ## Coloring options
