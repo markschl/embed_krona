@@ -594,6 +594,8 @@ plot_krona.matrix = function(classification,
     url = make_file_url(snap_html_out, krona_opts)
     snapshot_dim = round(snapshot_dim * snapshot_res)
     
+    # due to https://github.com/wch/webshot/issues/115
+    Sys.setenv(OPENSSL_CONF="/dev/null")
     webshot::webshot(
       url,
       snap,
