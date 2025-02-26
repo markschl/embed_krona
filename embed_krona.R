@@ -514,23 +514,19 @@ plot_krona.matrix = function(classification,
   close(f)
   
   # generate Krona chart from XML
-  cmd = paste(c(bin, '-o',
-              paste0('"', outfile, '"'),
-              if (!is.null(resources_url)) c( '-u', resources_url) else NULL,
-              paste0('"', xml_file, '"')),
-              collapse=' ')
-  # print(paste(bin, '-o', outfile, xml_file, collapse=' '))
+  args = c(
+    '-o',
+    outfile,
+    if (!is.null(resources_url)) c( '-u', resources_url) else NULL,
+    xml_file
+  )
+  # print(paste(c(bin, args, '-o', outfile, xml_file), collapse=' '))
   
-  if (.Platform$OS.type == 'windows') {
-    shell(cmd, ignore.stdout=T, translate=T, mustWork=T)    
-  } else {
-    tryCatch({
-      system(cmd, ignore.stdout = T)
-    }, warning = function(w) {
-      stop(conditionMessage(w))
-    })
+  ret = system2(bin, args, stdout=TRUE, stderr=TRUE)
+  status = attr(ret, 'status')
+  if (!is.null(status) && status != 0) {
+    stop(ret)
   }
-  
   file.remove(xml_file)
   
   # Return the output
