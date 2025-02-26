@@ -446,7 +446,7 @@ plot_krona.matrix = function(taxonomy,
     cat(
       sprintf('<node name="%s">', name),
       sprintf('<n>%s</n>', paste(
-        sprintf('<val>%s</val>', ifelse(n == 0, '', value_fn(n))), collapse = ''
+        sprintf('<v>%s</v>', ifelse(n == 0, '', value_fn(n))), collapse = ''
       )),
       sep = '\n',
       file = file
@@ -455,7 +455,7 @@ plot_krona.matrix = function(taxonomy,
       col = apply(dataset_abund, 2, function(n)
         color_summary_fn(color, n))
       cat(sprintf('<c>%s</c>', paste(
-        sprintf('<val>%s</val>', ifelse(is.nan(col), 0, color_fn(col))), collapse =
+        sprintf('<v>%s</v>', ifelse(is.nan(col), 0, color_fn(col))), collapse =
           ''
       )),
       sep = '\n',
