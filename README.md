@@ -3,6 +3,11 @@
 This repo provides a function for creating [Krona
 charts](https://github.com/marbl/Krona/wiki) in R.
 
+## Important note
+
+**This project is obsolete, please use the new R package: https://github.com/markschl/taxplore**.
+The package is partly based on the *embed_krona* code.
+
 ## Features
 
 - The interactive charts can be explored directly within R-Markdown
